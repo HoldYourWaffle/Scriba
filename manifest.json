@@ -1,0 +1,33 @@
+{
+	"manifest_version": 2,
+	"name": "Scriba - Oncourse attempt monk",
+	"version": "1.0",
+	"description": "Tediously copies the correct answers of a finished attempt into a fresh one",
+	"homepage_url": "https://github.com/HoldYourWaffle/Scriba/oncourse/attempt-monk",
+	
+	"icons": {
+		"48": "buddha.png",
+		"96": "buddha.png"
+	},
+	
+	"permissions": [
+		"cookies",
+		"*://oncourse.tue.nl/*"
+	],
+	
+	"browser_action": {
+		"default_icon": "buddha.png",
+		"default_title": "Scriba - Oncourse attempt monk"
+	},
+	
+	"content_scripts": [
+		{
+			"matches": ["*://oncourse.tue.nl/2020/mod/quiz/view.php*"],
+			"js": ["dist/index.js"]
+		}
+	],
+	
+	"web_accessible_resources": [
+		"buddha.png"
+	]
+}
