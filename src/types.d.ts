@@ -7,9 +7,6 @@ declare global {
 	// Declaring in global scope because modules would require a build setup
 
 	interface QuestionAnswer {
-		/** Index in the DOM */
-		realIndex: number;
-		
 		/** Question number visible to user */
 		visibleIndex: number;
 		
