@@ -1,8 +1,13 @@
 {
 	"name": "scriba-oncourse-attempt-replicator",
+	"scripts": {
+		"run": "web-ext run",
+		"build": "web-ext sign"
+	},
 	"dependencies": {},
 	"devDependencies": {
 		"@types/jquery": "^3.5.5",
+		"web-ext": "^5.5.0",
 		"webextension-polyfill-ts": "^0.25.0"
 	}
 }
