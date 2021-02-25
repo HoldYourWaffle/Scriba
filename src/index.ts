@@ -1,7 +1,6 @@
 const cmid = parseInt(new URLSearchParams(document.location.search).get('id')!);
 const attempts = document.querySelectorAll("table.quizattemptsummary tbody tr");
 const parser = new DOMParser();
-const t = '  '; // spacer smaller than tabs
 
 // Fucking chrome
 const runtime = chrome != undefined ? chrome.runtime : browser!.runtime;
@@ -78,9 +77,10 @@ async function doMonkTask(cmid: number, sourceAttempt: number) {
 			const question = questions[realIndex];
 			
 			if (question.classList.contains('informationitem')) {
-				console.log(`${t}Question element ${realIndex} is informational -> skipping`);
+				console.log(`  Question element ${realIndex} is informational -> skipping`);
 				continue;
 			} else if (!question.classList.contains('multichoice')) {
+				//FIXME should warn+ignore
 				throw new Error(`Unknown question type for element ${realIndex}: ${question.classList}`);
 			}
 			
@@ -89,12 +89,12 @@ async function doMonkTask(cmid: number, sourceAttempt: number) {
 			const questionAnswer = answers[questionNumber-1];
 			
 			
-			console.log(`${t}Question element ${realIndex} is question ${questionNumber}`);
+			console.log(`  Question element ${realIndex} is question ${questionNumber}`);
 			
 			if (questionAnswer.visibleIndex !== questionNumber) {
 				throw new Error(`Something is wrong, I can feel it: answer for question #${questionNumber} does not have the correct visibleIndex (${questionAnswer.visibleIndex})`);
 			} else if (!questionAnswer.correct) {
-				console.log(`${t}${t}Answer for ${questionNumber} was not correct -> skipping`);
+				console.log(`    Answer for ${questionNumber} was not correct -> skipping`);
 				continue;
 			}
 			
@@ -104,10 +104,10 @@ async function doMonkTask(cmid: number, sourceAttempt: number) {
 			
 			// Assuming uniform input type per question
 			if (answerInputs[0].type === 'radio') {
-				console.log(`${t}This is a radio question`);
+				console.log(`  This is a radio question`);
 				handleRadio(formData, questionAnswer, answerInputs);
 			} else if (answerInputs[0].type === 'checkbox') {
-				console.log(`${t}This is a checkbox question`);
+				console.log(`  This is a checkbox question`);
 				handleCheckbox(formData, questionAnswer, answerInputs);
 			} else {
 				throw new Error(`Unknown answer input type: ${answerInputs[0].type}`);
@@ -130,12 +130,12 @@ async function doMonkTask(cmid: number, sourceAttempt: number) {
 		}
 		
 		
-		/* console.log(`${t}Submitting data for page ${page+1}:`);
-		formData.forEach((value, key) => console.log(`${t}${t}${key} = ${value}`)); */
+		/* console.log(`  Submitting data for page ${page+1}:`);
+		formData.forEach((value, key) => console.log(`    ${key} = ${value}`)); */
 		
 		
 		const submitResponse = await fetch(`https://oncourse.tue.nl/2020/mod/quiz/processattempt.php?cmid=${cmid}`, { method: 'post', body: formData, credentials: 'include' });
-		console.log(`${t}Response: ${submitResponse.status} ${submitResponse.statusText}`);
+		console.log(`  Response: ${submitResponse.status} ${submitResponse.statusText}`);
 		
 		if (!submitResponse.ok) {
 			throw new Error(`POST response was not OK :(`);
@@ -159,7 +159,7 @@ async function getAnswersForAttempt(cmid: number, attempt: number): Promise<Ques
 		const realIndex = getQuestionId(question);
 
 		if (question.classList.contains('informationitem')) {
-			//console.log(`${t}Question element ${realIndex} is informational -> skipping`);
+			//console.log(`  Question element ${realIndex} is informational -> skipping`);
 			return;
 		}
 
@@ -253,7 +253,7 @@ function handleRadio(formData: FormData, questionAnswer: QuestionAnswer, answerI
 			answerOptionName = answerInputs[i].name;
 			answerOptionValue = answerInputs[i].value;
 			
-			console.log(`${t}${t}Answer ${answerInputLabel} (${answerOptionValue}) was chosen`);
+			console.log(`    Answer ${answerInputLabel} (${answerOptionValue}) was chosen`);
 			break;
 		}
 		
@@ -273,7 +273,7 @@ function handleCheckbox(formData: FormData, questionAnswer: QuestionAnswer, answ
 		const answerOptionText = getOrphanInnerText(answerOption.labels![0]);
 		const wasSelected = questionAnswer.answer[answerOptionText];
 		
-		console.log(`${t}${t}Answer '${answerOptionText}' was set to ${wasSelected}`);
+		console.log(`    Answer '${answerOptionText}' was set to ${wasSelected}`);
 		formData.set(answerOption.name, wasSelected ? '1' : '0');
 	})
 }
