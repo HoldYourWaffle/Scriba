@@ -6,8 +6,8 @@
 	"homepage_url": "https://github.com/HoldYourWaffle/Scriba/oncourse/attempt-monk",
 	
 	"icons": {
-		"48": "buddha.png",
-		"96": "buddha.png"
+		"48": "icons/buddha.png",
+		"96": "icons/buddha.png"
 	},
 	
 	"permissions": [
@@ -16,7 +16,7 @@
 	],
 	
 	"browser_action": {
-		"default_icon": "buddha.png",
+		"default_icon": "icons/buddha.png",
 		"default_title": "Scriba - Oncourse attempt monk"
 	},
 	
@@ -27,7 +27,5 @@
 		}
 	],
 	
-	"web_accessible_resources": [
-		"buddha.png"
-	]
+	"web_accessible_resources": [ "icons/buddha.png", "icons/progress.gif", "icons/error.png" ]
 }

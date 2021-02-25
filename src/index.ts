@@ -22,12 +22,21 @@ attempts.forEach(attemptRow => {
 
 
 	const monk = document.createElement('img');
-	monk.src = runtime.getURL('buddha.png');
+	monk.src = runtime.getURL('icons/buddha.png');
 	monk.style.height = '2em';
 	monk.style.cursor = 'pointer';
 
 	const magicButton = document.createElement('a');
-	magicButton.onclick = () => doMonkTask(cmid, attemptId);
+	magicButton.onclick = () => {
+		monk.src = runtime.getURL('icons/progress.gif');
+		
+		doMonkTask(cmid, attemptId)
+			.then(() => {
+				alert('☆ﾟ*｡ The magical monk has copied your correct answers ｡*☆ﾟ');
+				monk.src = runtime.getURL('icons/success.png')
+			})
+			.catch(() => monk.src = runtime.getURL('icons/error.png'))
+	}
 	magicButton.appendChild(monk);
 
 	const magicCell = document.createElement('td');
@@ -43,7 +52,7 @@ attempts.forEach(attemptRow => {
 //  Using a build system just for this seems a bit much
 
 async function doMonkTask(cmid: number, sourceAttempt: number) {
-	console.log('Here we go again... (⇀‸↼‶)')
+	console.log('Here we go again... (⇀‸↼‶)');
 	
 	const answers = await getAnswersForAttempt(cmid, sourceAttempt);
 	console.log(answers);
@@ -134,7 +143,6 @@ async function doMonkTask(cmid: number, sourceAttempt: number) {
 	}
 	
 	console.log('Done ヾ(￣0￣ )ノ');
-	alert('☆ﾟ*｡ The magical monk has copied your correct answers ｡*☆ﾟ');
 }
 
 
