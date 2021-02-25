@@ -2,7 +2,10 @@ import { Browser } from 'webextension-polyfill-ts'
 
 declare global {
 	// Ambient module declaration to expose modular definitions as global
-	const browser: Browser;
+	const browser: Browser | undefined;
+	
+	// Fucking chrome
+	const chrome: Browser | undefined;
 	
 	// Declaring in global scope because modules would require a build setup
 

@@ -3,6 +3,9 @@ const attempts = document.querySelectorAll("table.quizattemptsummary tbody tr");
 const parser = new DOMParser();
 const t = '  '; // spacer smaller than tabs
 
+// Fucking chrome
+const runtime = chrome != undefined ? chrome.runtime : browser!.runtime;
+
 
 attempts.forEach(attemptRow => {
 	const reviewCol = attemptRow.getElementsByClassName('c4')[ 0 ];
@@ -19,7 +22,7 @@ attempts.forEach(attemptRow => {
 
 
 	const monk = document.createElement('img');
-	monk.src = browser.runtime.getURL('buddha.png');
+	monk.src = runtime.getURL('buddha.png');
 	monk.style.height = '2em';
 	monk.style.cursor = 'pointer';
 
