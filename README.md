@@ -61,6 +61,7 @@ If you can't review your answers, the monk can't copy them.
 - The monk is configured for [TU/e oncourse](https://oncourse.tue.nl/2020/).
 As oncourse seems to be [Moodle](https://moodle.org/) based, it might be possible to teach the monk the ways of other universities ([#5](https://github.com/HoldYourWaffle/oncourse-attempt-monk/issues/5))
 - The monk can currently only deal with **radio and checkbox** question types ([#6](https://github.com/HoldYourWaffle/oncourse-attempt-monk/issues/6))
+- The monk does not know math ([#7](https://github.com/HoldYourWaffle/oncourse-attempt-monk/issues/7))
 
 These issues will most likely be addressed as I encounter them during my own studies.
 If you're brave and feeling like ~~procrastinating~~ contributing, feel free to submit a [pull request](#contributing).
