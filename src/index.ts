@@ -152,48 +152,57 @@ async function doMonkTask(cmid: number, sourceAttempt: number) {
 async function getAnswersForAttempt(cmid: number, attempt: number): Promise<QuestionAnswer[]> {
 	console.log(`Fetching answers for attempt ${attempt}`);
 	
-	//XXX does this have pagination?
-	const response = await fetch(`https://oncourse.tue.nl/2020/mod/quiz/review.php?attempt=${attempt}&cmid=${cmid}`);
-	const html = parser.parseFromString(await response.text(), 'text/html');
-
 	const questionAnswers: QuestionAnswer[] = [];
-
-	html.querySelectorAll('.que').forEach(question => {
-		const realIndex = getQuestionId(question);
-
-		if (question.classList.contains('informationitem')) {
-			//console.log(`  Question element ${realIndex} is informational -> skipping`);
-			return;
-		}
-
-		if (!question.classList.contains('multichoice')) {
-			throw new Error(`Unknown question type for ${realIndex}: ${question.classList}`);
-		}
-
-
-		const answerInputs = question.querySelectorAll('.content .formulation .ablock .answer input') as NodeListOf<HTMLInputElement>;
-
-
-		const answer: { [ answerText: string ]: boolean } = {};
-
-		answerInputs.forEach(answerInput => {
-			if (answerInput.type !== 'checkbox' && answerInput.type !== 'radio') {
-				throw new Error(`Unknown answer input type: ${answerInput.type}`);
+	
+	for (let page = 0; true; page++) {
+		console.log(`    Page ${page}...`);
+		
+		const response = await fetch(`https://oncourse.tue.nl/2020/mod/quiz/review.php?attempt=${attempt}&cmid=${cmid}&page=${page}`);
+		const html = parser.parseFromString(await response.text(), 'text/html');
+		
+		html.querySelectorAll('.que').forEach(question => {
+			const realIndex = getQuestionId(question);
+	
+			if (question.classList.contains('informationitem')) {
+				//console.log(`  Question element ${realIndex} is informational -> skipping`);
+				return;
 			}
-			
-			const answerLabel = answerInput.labels![0];
-			const answerText = getOrphanInnerText(answerLabel);
-
-			answer[answerText] = answerInput.hasAttribute('checked');
-		});
-
-
-		questionAnswers.push({
-			answer,
-			visibleIndex: questionAnswers.length + 1,
-			correct: question.classList.contains('correct')
+	
+			if (!question.classList.contains('multichoice')) {
+				throw new Error(`Unknown question type for ${realIndex}: ${question.classList}`);
+			}
+	
+	
+			const answerInputs = question.querySelectorAll('.content .formulation .ablock .answer input') as NodeListOf<HTMLInputElement>;
+	
+	
+			const answer: { [ answerText: string ]: boolean } = {};
+	
+			answerInputs.forEach(answerInput => {
+				if (answerInput.type !== 'checkbox' && answerInput.type !== 'radio') {
+					throw new Error(`Unknown answer input type: ${answerInput.type}`);
+				}
+				
+				const answerLabel = answerInput.labels![0];
+				const answerText = getOrphanInnerText(answerLabel);
+	
+				answer[answerText] = answerInput.hasAttribute('checked');
+			});
+	
+	
+			questionAnswers.push({
+				answer,
+				visibleIndex: questionAnswers.length + 1,
+				correct: question.classList.contains('correct')
+			})
 		})
-	})
+		
+		if (html.querySelector(".arrow_link.mod_quiz-next-nav") == null) {
+			// No "next page" button
+			break;
+		}
+	}
+
 
 	return questionAnswers;
 }
