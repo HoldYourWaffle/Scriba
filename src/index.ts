@@ -34,7 +34,10 @@ attempts.forEach(attemptRow => {
 				alert('☆ﾟ*｡ The magical monk has copied your correct answers ｡*☆ﾟ');
 				monk.src = runtime.getURL('icons/success.png')
 			})
-			.catch(() => monk.src = runtime.getURL('icons/error.png'))
+			.catch(e => {
+				console.error(e);
+				monk.src = runtime.getURL('icons/error.png');
+			})
 	}
 	magicButton.appendChild(monk);
 
