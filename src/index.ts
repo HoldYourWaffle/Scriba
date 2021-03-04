@@ -82,7 +82,7 @@ async function doMonkTask(cmid: number, sourceAttempt: number) {
 			if (question.classList.contains('informationitem')) {
 				console.log(`  Question element ${realIndex} is informational -> skipping`);
 				continue;
-			} else if (!question.classList.contains('multichoice')) {
+			} else if (!question.classList.contains('multichoice') && !question.classList.contains('truefalse')) {
 				//FIXME should warn+ignore
 				throw new Error(`Unknown question type for element ${realIndex}: ${question.classList}`);
 			}
@@ -168,7 +168,7 @@ async function getAnswersForAttempt(cmid: number, attempt: number): Promise<Ques
 				return;
 			}
 	
-			if (!question.classList.contains('multichoice')) {
+			if (!question.classList.contains('multichoice') && !question.classList.contains('truefalse')) {
 				throw new Error(`Unknown question type for ${realIndex}: ${question.classList}`);
 			}
 	
