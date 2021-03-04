@@ -274,8 +274,10 @@ function handleRadio(formData: FormData, questionAnswer: QuestionAnswer, answerI
 		}
 		
 		formData.set(answerOptionName, answerOptionValue);
-		break;
+		return;
 	}
+	
+	console.warn(`Did not find matching answer for ${questionAnswer.visibleIndex}`);
 }
 
 
