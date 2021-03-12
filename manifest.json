@@ -1,7 +1,7 @@
 {
 	"manifest_version": 2,
 	"name": "Oncourse attempt monk",
-	"version": "1.4",
+	"version": "1.5",
 	"description": "Tediously copies the correct answers of a finished attempt into a fresh one",
 	"homepage_url": "https://github.com/HoldYourWaffle/oncourse-attempt-monk",
 	
