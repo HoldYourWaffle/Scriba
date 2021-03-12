@@ -162,6 +162,7 @@ async function getAnswersForAttempt(cmid: number, attempt: number): Promise<Ques
 		
 		html.querySelectorAll('.que').forEach(question => {
 			const realIndex = getQuestionId(question);
+			const visibleIndex = questionAnswers.length + 1
 	
 			if (question.classList.contains('informationitem')) {
 				//console.log(`  Question element ${realIndex} is informational -> skipping`);
@@ -169,7 +170,7 @@ async function getAnswersForAttempt(cmid: number, attempt: number): Promise<Ques
 			}
 	
 			if (!question.classList.contains('multichoice') && !question.classList.contains('truefalse')) {
-				throw new Error(`Unknown question type for ${realIndex}: ${question.classList}`);
+				throw new Error(`Unknown question type for ${visibleIndex}: ${question.classList}`);
 			}
 	
 	
@@ -192,7 +193,7 @@ async function getAnswersForAttempt(cmid: number, attempt: number): Promise<Ques
 	
 			questionAnswers.push({
 				answer,
-				visibleIndex: questionAnswers.length + 1,
+				visibleIndex,
 				correct: question.classList.contains('correct')
 			})
 		})
