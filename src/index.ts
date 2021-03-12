@@ -52,12 +52,11 @@ attempts.forEach(attemptRow => {
 
 // Would love to put this in a separate module, but browser extensions are not allowed to use ESM
 //  Using a build system just for this seems a bit much
-
 async function doMonkTask(cmid: number, sourceAttempt: number) {
 	console.log('Here we go again... (⇀‸↼‶)');
 	
-	const answers = await getAnswersForAttempt(cmid, sourceAttempt);
-	console.log(answers);
+	const knownAnswers = await getAnswersForAttempt(cmid, sourceAttempt);
+	console.log(knownAnswers);
 	
 	
 	const { attemptId, pages } = await fetchNextAttempt();
@@ -69,28 +68,34 @@ async function doMonkTask(cmid: number, sourceAttempt: number) {
 	
 	for (let page = 0; page <= pages; page++) {
 		console.log(`Page ${page+1}/${pages+1}`);
-		const formData = new FormData();
+		visibleIndex = await doMonkPageTask(attemptId, page, knownAnswers, visibleIndex);
+	}
+	
+	console.log('Done ヾ(￣0￣ )ノ');
+}
+
+
+// Returns the raised visibleIndex
+async function doMonkPageTask(attemptId: number, page: number, knownAnswers: AnsweredQuestion[], visibleIndex: number): Promise<number> {
+	const formData = new FormData();
 		
-		const attemptPage = await fetch(`https://oncourse.tue.nl/2020/mod/quiz/attempt.php?attempt=${attemptId}&page=${page}&cmid=${cmid}`);
-		const form = parser.parseFromString(await attemptPage.text(), 'text/html').getElementById('responseform')!;
-		const questions = form.getElementsByClassName('que');
-		
-		
-		for (let realIndex = 0; realIndex < questions.length; realIndex++) {
+	const attemptPage = await fetch(`https://oncourse.tue.nl/2020/mod/quiz/attempt.php?attempt=${attemptId}&page=${page}&cmid=${cmid}`);
+	const form = parser.parseFromString(await attemptPage.text(), 'text/html').getElementById('responseform')!;
+	const questions = form.getElementsByClassName('que');
+	
+	
+	for (let realIndex = 0; realIndex < questions.length; realIndex++) {
+		try {
 			const question = questions[realIndex];
+			const type = getQuestionType(question);
 			
-			if (question.classList.contains('informationitem')) {
+			if (type === QuestionType.INFORMATIONAL) {
 				console.log(`  Question element ${realIndex} is informational -> skipping`);
 				continue;
-			} else if (!question.classList.contains('multichoice') && !question.classList.contains('truefalse')) {
-				//FIXME should warn+ignore
-				throw new Error(`Unknown question type for element ${realIndex}: ${question.classList}`);
 			}
 			
-			
 			const questionNumber = visibleIndex++;
-			const questionAnswer = answers[questionNumber-1];
-			
+			const questionAnswer = knownAnswers[questionNumber-1];
 			
 			console.log(`  Question element ${realIndex} is question ${questionNumber}`);
 			
@@ -101,10 +106,45 @@ async function doMonkTask(cmid: number, sourceAttempt: number) {
 				continue;
 			}
 			
-			
-			// Copy over the non-hidden inputs
-			const answerInputs = question.querySelectorAll('.answer input[type]:not([type=hidden])') as NodeListOf<HTMLInputElement>;
-			
+			doMonkQuestion(question, questionAnswer, formData);
+		} catch (e) {
+			console.error(`An error occured while monking question element ${realIndex}:`);
+			throw e;
+		}
+	}
+	
+	
+	// Copying some additional hidden data for this page
+	const hiddenDataKeys = [ 'attempt', 'sesskey', 'followingpage', 'nextpage', 'timeup', 'scrollpos', 'slots' ];
+	for (let hiddenKey of hiddenDataKeys) {
+		const hiddenInput = form.querySelector(`input[name=${hiddenKey}]`) as HTMLInputElement;
+		if (hiddenInput != null) {
+			formData.set(hiddenKey, hiddenInput.value);
+		}
+	}
+	
+	
+	/* console.log(`  Submitting data for page ${page+1}:`);
+	formData.forEach((value, key) => console.log(`    ${key} = ${value}`)); */
+	
+	const submitResponse = await fetch(`https://oncourse.tue.nl/2020/mod/quiz/processattempt.php?cmid=${cmid}`, { method: 'post', body: formData, credentials: 'include' });
+	console.log(`  Response: ${submitResponse.status} ${submitResponse.statusText}`);
+	
+	if (!submitResponse.ok) {
+		throw new Error(`POST response was not OK :(`);
+	}
+	
+	return visibleIndex;
+}
+
+
+function doMonkQuestion(question: Element, questionAnswer: AnsweredQuestion, formData: FormData) {
+	// Copy over the non-hidden inputs
+	const answerInputs = question.querySelectorAll('.answer input[type]:not([type=hidden])') as NodeListOf<HTMLInputElement>;
+	
+	switch (questionAnswer.type) {
+		case QuestionType.MULTICHOICE:
+		case QuestionType.TRUEFALSE:
 			// Assuming uniform input type per question
 			if (answerInputs[0].type === 'radio') {
 				console.log(`  This is a radio question`);
@@ -115,45 +155,31 @@ async function doMonkTask(cmid: number, sourceAttempt: number) {
 			} else {
 				throw new Error(`Unknown answer input type: ${answerInputs[0].type}`);
 			}
+			break;
+		
 			
-			
-			// Copy over sequencecheck
-			const sequenceCheckInput = question.querySelector('input[type=hidden][name$=":sequencecheck"') as HTMLInputElement;
-			formData.set(sequenceCheckInput.name, sequenceCheckInput.value);
-		}
+		case QuestionType.NUMERICAL:
+			break;
 		
 		
-		// Copying some additional hidden data
-		const hiddenDataKeys = [ 'attempt', 'sesskey', 'followingpage', 'nextpage', 'timeup', 'scrollpos', 'slots' ];
-		for (let hiddenKey of hiddenDataKeys) {
-			const hiddenInput = form.querySelector(`input[name=${hiddenKey}]`) as HTMLInputElement;
-			if (hiddenInput != null) {
-				formData.set(hiddenKey, hiddenInput.value);
-			}
-		}
-		
-		
-		/* console.log(`  Submitting data for page ${page+1}:`);
-		formData.forEach((value, key) => console.log(`    ${key} = ${value}`)); */
-		
-		
-		const submitResponse = await fetch(`https://oncourse.tue.nl/2020/mod/quiz/processattempt.php?cmid=${cmid}`, { method: 'post', body: formData, credentials: 'include' });
-		console.log(`  Response: ${submitResponse.status} ${submitResponse.statusText}`);
-		
-		if (!submitResponse.ok) {
-			throw new Error(`POST response was not OK :(`);
-		}
+		case QuestionType.INFORMATIONAL:
+		default:
+			throw new Error(`Can't copy answer for type ${questionAnswer.type}`);
 	}
 	
-	console.log('Done ヾ(￣0￣ )ノ');
+	
+	// Copy over sequencecheck
+	const sequenceCheckInput = question.querySelector('input[type=hidden][name$=":sequencecheck"') as HTMLInputElement;
+	formData.set(sequenceCheckInput.name, sequenceCheckInput.value);
 }
 
 
-async function getAnswersForAttempt(cmid: number, attempt: number): Promise<QuestionAnswer[]> {
+async function getAnswersForAttempt(cmid: number, attempt: number): Promise<AnsweredQuestion[]> {
 	console.log(`Fetching answers for attempt ${attempt}`);
 	
-	const questionAnswers: QuestionAnswer[] = [];
+	const questionAnswers: AnsweredQuestion[] = [];
 	
+	// Terminated when a page has no "next page" button
 	for (let page = 0; true; page++) {
 		console.log(`    Page ${page}...`);
 		
@@ -161,41 +187,27 @@ async function getAnswersForAttempt(cmid: number, attempt: number): Promise<Ques
 		const html = parser.parseFromString(await response.text(), 'text/html');
 		
 		html.querySelectorAll('.que').forEach(question => {
-			const realIndex = getQuestionId(question);
+			//const realIndex = getQuestionId(question);
 			const visibleIndex = questionAnswers.length + 1
-	
-			if (question.classList.contains('informationitem')) {
-				//console.log(`  Question element ${realIndex} is informational -> skipping`);
-				return;
-			}
-	
-			if (!question.classList.contains('multichoice') && !question.classList.contains('truefalse')) {
-				throw new Error(`Unknown question type for ${visibleIndex}: ${question.classList}`);
-			}
-	
-	
-			const answerInputs = question.querySelectorAll('.content .formulation .ablock .answer input') as NodeListOf<HTMLInputElement>;
-	
-	
-			const answer: { [ answerText: string ]: boolean } = {};
-	
-			answerInputs.forEach(answerInput => {
-				if (answerInput.type !== 'checkbox' && answerInput.type !== 'radio') {
-					throw new Error(`Unknown answer input type: ${answerInput.type}`);
+			
+			try {
+				const type = getQuestionType(question);
+				const answer = parseAnswer(question, type);
+				
+				if (answer == null) {
+					// This question doesn't have an answer
+					return;
 				}
 				
-				const answerLabel = answerInput.labels![0];
-				const answerText = getOrphanInnerText(answerLabel);
-	
-				answer[answerText] = answerInput.hasAttribute('checked');
-			});
-	
-	
-			questionAnswers.push({
-				answer,
-				visibleIndex,
-				correct: question.classList.contains('correct')
-			})
+				questionAnswers.push({
+					answer, type,
+					visibleIndex,
+					correct: question.classList.contains('correct')
+				})
+			} catch (e) {
+				console.error(`Error while parsing question ${visibleIndex}:`);
+				throw e;
+			}
 		})
 		
 		if (html.querySelector(".arrow_link.mod_quiz-next-nav") == null) {
@@ -206,6 +218,46 @@ async function getAnswersForAttempt(cmid: number, attempt: number): Promise<Ques
 
 
 	return questionAnswers;
+}
+
+
+function parseAnswer(question: Element, type: QuestionType): Answer | null {
+	const answerInputs = question.querySelectorAll('.content .formulation .ablock .answer input') as NodeListOf<HTMLInputElement>;
+	
+	switch (type) {
+		case QuestionType.INFORMATIONAL:
+			// Skip informational crap
+			return null;
+			
+		
+		case QuestionType.MULTICHOICE:
+		case QuestionType.TRUEFALSE:
+			const answer: MultiChoiceAnswer = {};
+			answerInputs.forEach(answerInput => {
+				if (answerInput.type !== 'checkbox' && answerInput.type !== 'radio') {
+					throw new Error(`Unknown answer input type: ${answerInput.type}`);
+				}
+				
+				const answerLabel = answerInput.labels![0];
+				const answerText = getOrphanInnerText(answerLabel);
+	
+				//{ [ answerText: string ]: boolean }
+				answer[answerText] = answerInput.hasAttribute('checked');
+			})
+			return answer;
+			
+		
+		case QuestionType.NUMERICAL:
+			if (answerInputs.length != 1) {
+				throw new Error(`I can't handle multiple numerical inputs in a single question`);
+			}
+			return parseInt(answerInputs[0].value);
+			
+		
+		default:
+			// Exhaustiveness check: should be 'never'
+			return type;
+	}
 }
 
 
@@ -242,10 +294,12 @@ async function fetchNextAttempt(): Promise<{ attemptId: number, pages: number }>
 }
 
 
-function handleRadio(formData: FormData, questionAnswer: QuestionAnswer, answerInputs: NodeListOf<HTMLInputElement>) {
+function handleRadio(formData: FormData, questionAnswer: AnsweredQuestion, answerInputs: NodeListOf<HTMLInputElement>) {
+	const givenAnswer = questionAnswer.answer as MultiChoiceAnswer;
+	
 	// Find the answer option that was set to true
-	for (let answerOption in questionAnswer.answer) {
-		if (!questionAnswer.answer[answerOption]) {
+	for (let answerOption in givenAnswer) {
+		if (!givenAnswer[answerOption]) {
 			// This aint it
 			continue;
 		}
@@ -282,11 +336,13 @@ function handleRadio(formData: FormData, questionAnswer: QuestionAnswer, answerI
 }
 
 
-function handleCheckbox(formData: FormData, questionAnswer: QuestionAnswer, answerInputs: NodeListOf<HTMLInputElement>) {
+function handleCheckbox(formData: FormData, questionAnswer: AnsweredQuestion, answerInputs: NodeListOf<HTMLInputElement>) {
+	const givenAnswer = questionAnswer.answer as MultiChoiceAnswer;
+	
 	// Check for each option if it was set to true
 	answerInputs.forEach(answerOption => {
 		const answerOptionText = getOrphanInnerText(answerOption.labels![0]);
-		const wasSelected = questionAnswer.answer[answerOptionText];
+		const wasSelected = givenAnswer[answerOptionText];
 		
 		console.log(`    Answer '${answerOptionText}' was set to ${wasSelected}`);
 		formData.set(answerOption.name, wasSelected ? '1' : '0');
@@ -309,4 +365,26 @@ function getOrphanInnerText(el: Element): string {
 		}
 	}
 	return answerText;
+}
+
+
+function getQuestionType(el: Element): QuestionType {
+	for (const type in QuestionType) {
+		const typeCode = QuestionType[type as keyof typeof QuestionType];
+		
+		if (el.classList.contains(typeCode)) {
+			return typeCode;
+		}
+	}
+	
+	//FIXME should warn+ignore
+	throw new Error(`Unknown question type: ${el.classList}`);
+}
+
+
+enum QuestionType {
+	INFORMATIONAL = 'informationitem',
+	MULTICHOICE = 'multichoice',
+	TRUEFALSE = 'truefalse',
+	NUMERICAL = 'numerical'
 }
